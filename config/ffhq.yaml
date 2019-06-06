@@ -5,3 +5,5 @@ lr: 0.0001
 betas: [0.0, 0.99]
 eps: 1.0e-8
 image_size: 64
+generator_channels: [512, 512, 512, 512, 512, 256, 128, 64, 32, 16]
+discriminator_channels: [16, 32, 64, 128, 256, 512, 512, 512, 512, 512]
