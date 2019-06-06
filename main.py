@@ -1,8 +1,21 @@
 from trainer import Trainer
+import argparse
+from config import Config
+import torchvision.datasets as dset
+import torchvision.transforms as transforms
 
-def main():
-    dataloader = NotImplemented
-    trainer = Trainer(nz=512, lr=0.001, betas=(0.5, 0.999))
+parser = argparse.ArgumentParser("train")
+parser.add_argument('--config', type=str, required=True)
+args, _ = parser.parse_known_args()
+        
+def main(): 
+    # pylint: disable=no-member
+    config = Config(args.config)
+    dataloader = dset.ImageFolder(root=config.dataset_dir, transform=transforms.Compose([
+        transforms.Resize(config.image_size),
+        transforms.ToTensor(),
+    ]))
+    trainer = Trainer(nz=config.nz, lr=config.lr, betas=config.betas, eps=config.eps) 
     trainer.run(dataloader)
  
 if __name__ == '__main__':

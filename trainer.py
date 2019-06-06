@@ -4,7 +4,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 class Trainer:
-    def __init__(self, nz, lr, betas):
+    def __init__(self, nz, lr, betas, eps):
         self.nz = nz
 
         self.generator = Generator()

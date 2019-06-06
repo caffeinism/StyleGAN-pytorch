@@ -1,0 +1,7 @@
+dataset_dir: D:\ffhq
+nz: 512
+const_channel: 512
+lr: 0.0001
+betas: [0.0, 0.99]
+eps: 1.0e-8
+image_size: 64
