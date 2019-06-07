@@ -13,6 +13,7 @@ from torch.autograd import Variable
 from PIL import Image
 import copy
 from torch.nn.init import kaiming_normal, calculate_gain
+from math import sqrt
 
 # same function as ConcatTable container in Torch7.
 class ConcatTable(nn.Module):
@@ -58,31 +59,31 @@ class PixelNorm(nn.Module):
 
 # for equaliaeed-learning rate.
 class EqualizedConv2d(nn.Module):
-    def __init__(self, c_in, c_out, k_size, stride, pad, bias=False):
+    def __init__(self, c_in, c_out, k_size, stride, pad):
         super(EqualizedConv2d, self).__init__()
-        self.conv = nn.Conv2d(c_in, c_out, k_size, stride, pad, bias=False)
+        conv = nn.Conv2d(c_in, c_out, k_size, stride, pad)
 
-        self.bias = torch.nn.Parameter(torch.FloatTensor(c_out).fill_(0))
-        self.scale = (torch.mean(self.conv.weight.data ** 2)) ** 0.5
-        self.conv.weight.data.copy_(self.conv.weight.data/self.scale)
+        conv.weight.data.normal_()
+        conv.bias.data.zero_()
+
+        self.conv = equal_lr(conv)
 
     def forward(self, x):
-        x = self.conv(x.mul(self.scale))
-        return x + self.bias.view(1,-1,1,1).expand_as(x)
+        return self.conv(x)
 
 
 class EqualizedLinear(nn.Module):
     def __init__(self, c_in, c_out):
         super(EqualizedLinear, self).__init__()
-        self.linear = nn.Linear(c_in, c_out, bias=False)
+        linear = nn.Linear(c_in, c_out)
         
-        self.bias = torch.nn.Parameter(torch.FloatTensor(c_out).fill_(0))
-        self.scale = (torch.mean(self.linear.weight.data ** 2)) ** 0.5
-        self.linear.weight.data.copy_(self.linear.weight.data/self.scale)
-        
+        linear.weight.data.normal_()
+        linear.bias.data.zero_()
+
+        self.linear = equal_lr(linear)
+
     def forward(self, x):
-        x = self.linear(x.mul(self.scale))
-        return x + self.bias.view(1,-1).expand_as(x)
+        return self.linear(x)
 
 
 class AdaIn(nn.Module):
@@ -141,3 +142,34 @@ class minibatch_std_concat_layer(nn.Module):
 
     def __repr__(self):
         return self.__class__.__name__ + '(averaging = %s)' % (self.averaging)
+
+class EqualLR:
+    def __init__(self, name):
+        self.name = name
+
+    def compute_weight(self, module):
+        weight = getattr(module, self.name + '_orig')
+        fan_in = weight.data.size(1) * weight.data[0][0].numel()
+
+        return weight * sqrt(2 / fan_in)
+
+    @staticmethod
+    def apply(module, name):
+        fn = EqualLR(name)
+
+        weight = getattr(module, name)
+        del module._parameters[name]
+        module.register_parameter(name + '_orig', nn.Parameter(weight.data))
+        module.register_forward_pre_hook(fn)
+
+        return fn
+
+    def __call__(self, module, input):
+        weight = self.compute_weight(module)
+        setattr(module, self.name, weight)
+
+
+def equal_lr(module, name='weight'):
+    EqualLR.apply(module, name)
+
+    return module
