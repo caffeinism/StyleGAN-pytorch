@@ -8,3 +8,4 @@ eps: 1.0e-8
 image_size: 4
 generator_channels: [512, 512, 512, 512, 512, 256, 128, 64, 32, 16]
 discriminator_channels: [512, 512, 512, 512, 512, 256, 128, 64, 32, 16]
+log_iter: 50

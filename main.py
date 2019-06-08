@@ -25,7 +25,7 @@ def main():
         betas=config.betas, 
         eps=config.eps
     ) 
-    trainer.run(dataloader)
+    trainer.run(dataloader, config.log_iter)
  
 if __name__ == '__main__':
     main()
