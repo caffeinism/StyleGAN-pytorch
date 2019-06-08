@@ -5,12 +5,12 @@ from custom_layers import EqualizedConv2d, EqualizedLinear, AdaIn, minibatch_std
 class Generator(nn.Module):
     def __init__(self, channels, style_dim):
         super(Generator, self).__init__()
-
-        self.model = UpBlock(channels[0], channels[1], style_dim, prev=None)
         
         self.style_dim = style_dim
         self.now_growth = 1
         self.channels = channels
+
+        self.model = UpBlock(channels[0], channels[1], style_dim, prev=None)
 
     def forward(self, style, alpha):
         x, rgb = self.model(x=None, style=style, alpha=alpha)
@@ -26,15 +26,16 @@ class Discriminator(nn.Module):
     def __init__(self, channels):
         super(Discriminator, self).__init__()
 
-        self.model = DownBlock(channels[0], channels[1], next=None)
         self.now_growth = 1
         self.channels = channels
+
+        self.model = DownBlock(channels[1], channels[0], next=None)
 
     def forward(self, x, alpha):
         return self.model(x=x, alpha=alpha)
 
     def grow(self):
-        in_c, out_c = self.channels[self.now_growth], self.channels[self.now_growth+1] 
+        in_c, out_c = self.channels[self.now_growth+1], self.channels[self.now_growth] 
         self.model = DownBlock(in_c, out_c, next=self.model)
         self.now_growth += 1
 
@@ -52,18 +53,18 @@ class UpBlock(nn.Module):
         else:
             self.input = nn.Parameter(torch.randn(1, out_channel, 4, 4))
 
-        self.adain1 = AdaIn(out_channel, style_dim)
+        self.adain1 = AdaIn(style_dim, out_channel)
         self.lrelu1 = nn.LeakyReLU(0.2)
 
         self.conv2 = EqualizedConv2d(out_channel, out_channel, 3, 1, 1)
-        self.adain2 = AdaIn(out_channel, style_dim)
+        self.adain2 = AdaIn(style_dim, out_channel)
         self.lrelu2 = nn.LeakyReLU(0.2)
 
         self.to_rgb = EqualizedConv2d(out_channel, 3, 1, 1, 0)
 
     def forward(self, x, style, alpha=-1.0):
         if self.prev: # if module has prev, then forward first.
-            x, prev_rgb = self.prev(x)
+            x, prev_rgb = self.prev(x, style, 1 if 0.0 <= alpha < 1.0 else -1.0)
 
             x = self.upsample(x)
             x = self.conv1(x)
@@ -80,9 +81,11 @@ class UpBlock(nn.Module):
         if 0.0 <= alpha < 1.0:
             prev_rgb = self.upsample(prev_rgb)
             rgb = alpha * self.to_rgb(x) + (1 - alpha) * prev_rgb
-        else:
+        elif alpha == 1:
             rgb = self.to_rgb(x)
-        
+        else:
+            rgb = None
+
         return x, rgb
 
 
@@ -130,9 +133,9 @@ class DownBlock(nn.Module):
 
             if 0.0 <= alpha < 1.0:
                 input = self.downsample(input)
-                alpha * x + (1 - alpha) * self.model.from_rgb(input)
+                x = alpha * x + (1 - alpha) * self.next.from_rgb(input)
 
-            x = self.model(x)
+            x = self.next(x)
         else:
             x = x.view(x.size(0), -1)
             x = self.linear(x)
