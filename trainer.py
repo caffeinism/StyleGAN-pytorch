@@ -5,24 +5,31 @@ import torch.nn.functional as F
 import tf_recorder as tensorboard
 from tqdm import tqdm
 from dataloader import Dataloader
+from torch.autograd import grad
+
+def requires_grad(model, flag=True):
+    for p in model.parameters():
+        p.requires_grad = flag
 
 class Trainer:
-    def __init__(self, dataset_dir, generator_channels, discriminator_channels, nz, lr, betas, eps, 
-                 phase_iter, batch_size):
+    def __init__(self, dataset_dir, generator_channels, discriminator_channels, nz, style_depth, lr, betas, eps, 
+                 phase_iter, batch_size, n_cpu):
         self.nz = nz
-        self.dataloader = Dataloader(dataset_dir, batch_size, phase_iter * 2)
+        self.dataloader = Dataloader(dataset_dir, batch_size, phase_iter * 2, n_cpu)
 
-        self.generator = Generator(generator_channels, nz).cuda()
+        self.generator = Generator(generator_channels, nz, style_depth).cuda()
         self.discriminator = Discriminator(discriminator_channels).cuda()
-        
-        self.optimizer_g = optim.Adam(params=self.generator.parameters(), lr=lr, betas=betas)
-        self.optimizer_d = optim.Adam(params=self.discriminator.parameters(), lr=lr, betas=betas)
-    
+
         self.tb = tensorboard.tf_recorder('StyleGAN')
 
         self.phase_iter = phase_iter
+        self.lr = lr
+        self.betas = betas
 
     def generator_trainloop(self, batch_size, alpha):
+        requires_grad(self.generator, True)
+        requires_grad(self.discriminator, False)
+        
         z = torch.randn(batch_size, self.nz).cuda()
 
         fake = self.generator(z, alpha=alpha)
@@ -36,55 +43,95 @@ class Trainer:
         return loss.item()
     
     def discriminator_trainloop(self, real, alpha):
+        requires_grad(self.generator, False)
+        requires_grad(self.discriminator, True)
+
+        real.requires_grad = True
+        self.optimizer_d.zero_grad()
+
         d_real = self.discriminator(real, alpha=alpha)
         loss_real = F.softplus(-d_real).mean()
+        loss_real.backward(retain_graph=True)
 
+        grad_real = grad(
+            outputs=d_real.sum(), inputs=real, create_graph=True
+        )[0]
+        grad_penalty = (
+            grad_real.view(grad_real.size(0), -1).norm(2, dim=1) ** 2
+        ).mean()
+        grad_penalty = 10 / 2 * grad_penalty
+        grad_penalty.backward()
+        
         z = torch.randn(real.size(0), self.nz).cuda()
 
         fake = self.generator(z, alpha=alpha)
         d_fake = self.discriminator(fake, alpha=alpha)
         loss_fake = F.softplus(d_fake).mean()
+        loss_fake.backward()
 
-        loss = loss_real + loss_fake
+        loss = loss_real + loss_fake + grad_penalty
 
-        self.optimizer_d.zero_grad()
-        loss.backward()
         self.optimizer_d.step()
         
-        return loss.item()
+        return loss.item(), (d_real.mean().item(), d_fake.mean().item())
 
     def run(self, log_iter):
         global_iter = 0
         
+        test_z = torch.randn(4, self.nz).cuda()
+        
         while True:
-            self.discriminator.grow()
-            self.generator.grow()
-            self.dataloader.grow()
-            self.generator.cuda()
-            self.discriminator.cuda()
+            # NOTE: Start gen & dis from 8x8 img size. But 4x4 img is not trained, 
+            #       so 'fade in' method is not good at this time.
+            self.grow()
 
             print('train {}X{} images...'.format(self.dataloader.img_size, self.dataloader.img_size))
             for (data, _), n_trained_samples in tqdm(self.dataloader):
                 real = data.cuda()
-                alpha = min(1, n_trained_samples / self.phase_iter)
+                alpha = min(1, n_trained_samples / self.phase_iter) if self.dataloader.img_size > 8 else 1
 
-                loss_d = self.discriminator_trainloop(real, alpha)
+                loss_d, (real_score, fake_score) = self.discriminator_trainloop(real, alpha)
                 loss_g = self.generator_trainloop(real.size(0), alpha)
 
                 if global_iter % log_iter == 0:
-                    self.log(loss_d, loss_g)
+                    self.log(loss_d, loss_g, real_score, fake_score, test_z)
 
                 global_iter += 1
 
+            self.save_checkpoint()
 
-    def log(self, loss_d, loss_g):
+
+    def log(self, loss_d, loss_g, real_score, fake_score, test_z):
         with torch.no_grad():
-            z = torch.randn(4, self.nz).cuda() # TODO: 4 -> batch_size
-            fake = self.generator(z, alpha=1)
+            fake = self.generator(test_z, alpha=1)
+            fake = (fake + 1) * 0.5
 
         self.tb.add_scalar('loss_d', loss_d)
         self.tb.add_scalar('loss_g', loss_g)
+        self.tb.add_scalar('real_score', real_score)
+        self.tb.add_scalar('fake_score', fake_score)
         self.tb.add_images('fake', fake)
         self.tb.iter()
 
-        
+    def grow(self):
+        self.discriminator.grow()
+        self.generator.grow()
+        self.dataloader.grow()
+        self.generator.cuda()
+        self.discriminator.cuda()
+
+        self.optimizer_d = optim.Adam(params=self.discriminator.parameters(), lr=self.lr, betas=self.betas)
+        self.optimizer_g = optim.Adam(params=self.generator.model.parameters(), lr=self.lr, betas=self.betas)
+        self.optimizer_g.add_param_group({
+            'params': self.generator.style_mapper.parameters(),
+            'lr': self.lr * 0.01,
+        })
+    
+    def save_checkpoint(self):
+        torch.save({
+            'generator': self.generator.state_dict(),
+            'discriminator': self.discriminator.state_dict(),
+            'generator_optimizer': self.optimizer_g.state_dict(),
+            'discriminator_optimizer': self.optimizer_d.state_dict(),
+            'img_size': self.dataloader.img_size,
+        }, '{}x{}.pth'.format(self.dataloader.img_size, self.dataloader.img_size))

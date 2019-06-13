@@ -1,12 +1,14 @@
 dataset_dir: D:\ffhq
 nz: 512
+style_depth: 8
 const_channel: 512
 lr: 0.001
 betas: [0.0, 0.99]
 eps: 1.0e-8
 image_size: 4
-batch_size: {'4':32, '8':32, '16':32, '32':16, '64':16, '128':16, '256':12, '512':3, '1024':1}
+batch_size: {'4':64, '8':32, '16':32, '32':16, '64':16, '128':8, '256':4, '512':2, '1024':1}
 generator_channels: [512, 512, 512, 512, 512, 256, 128, 64, 32, 16]
 discriminator_channels: [512, 512, 512, 512, 512, 256, 128, 64, 32, 16]
-log_iter: 10
-phase_iter: 64
+log_iter: 100
+phase_iter: 600000
+n_cpu: 8

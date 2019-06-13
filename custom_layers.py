@@ -15,38 +15,6 @@ import copy
 from torch.nn.init import kaiming_normal, calculate_gain
 from math import sqrt
 
-# same function as ConcatTable container in Torch7.
-class ConcatTable(nn.Module):
-    def __init__(self, layer1, layer2):
-        super(ConcatTable, self).__init__()
-        self.layer1 = layer1
-        self.layer2 = layer2
-        
-    def forward(self,x):
-        y = [self.layer1(x), self.layer2(x)]
-        return y
-
-class Flatten(nn.Module):
-    def __init__(self):
-        super(Flatten, self).__init__()
-
-    def forward(self, x):
-        return x.view(x.size(0), -1)
-
-
-class FadeIn(nn.Module):
-    def __init__(self, config):
-        super(FadeIn, self).__init__()
-        self.alpha = 0.0
-
-    def update_alpha(self, delta):
-        self.alpha = self.alpha + delta
-        self.alpha = max(0, min(self.alpha, 1.0))
-
-    # input : [x_low, x_high] from ConcatTable()
-    def forward(self, x):
-        return torch.add(x[0].mul(1.0-self.alpha), x[1].mul(self.alpha))
-
 
 class PixelNorm(nn.Module):
     def __init__(self):
@@ -124,12 +92,12 @@ class minibatch_std_concat_layer(nn.Module):
             vals = torch.mean(vals, dim=1, keepdim=True)
         elif self.averaging == 'spatial':
             if len(shape) == 4:
-                vals = mean(vals, axis=[2,3], keepdim=True)             # torch.mean(torch.mean(vals, 2, keepdim=True), 3, keepdim=True)
+                vals = torch.mean(vals, axis=[2,3], keepdim=True)             # torch.mean(torch.mean(vals, 2, keepdim=True), 3, keepdim=True)
         elif self.averaging == 'none':
             target_shape = [target_shape[0]] + [s for s in target_shape[1:]]
         elif self.averaging == 'gpool':
             if len(shape) == 4:
-                vals = mean(x, [0,2,3], keepdim=True)                   # torch.mean(torch.mean(torch.mean(x, 2, keepdim=True), 3, keepdim=True), 0, keepdim=True)
+                vals = torch.mean(x, [0,2,3], keepdim=True)                   # torch.mean(torch.mean(torch.mean(x, 2, keepdim=True), 3, keepdim=True), 0, keepdim=True)
         elif self.averaging == 'flat':
             target_shape[1] = 1
             vals = torch.FloatTensor([self.adjusted_std(x)])

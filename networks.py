@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
-from custom_layers import EqualizedConv2d, EqualizedLinear, AdaIn, minibatch_std_concat_layer
+from custom_layers import EqualizedConv2d, EqualizedLinear, AdaIn, minibatch_std_concat_layer, PixelNorm
 
 class Generator(nn.Module):
-    def __init__(self, channels, style_dim):
+    def __init__(self, channels, style_dim, style_depth):
         super(Generator, self).__init__()
         
         self.style_dim = style_dim
@@ -11,6 +11,13 @@ class Generator(nn.Module):
         self.channels = channels
 
         self.model = UpBlock(channels[0], channels[1], style_dim, prev=None)
+
+        layers = [PixelNorm()]
+        for i in range(style_depth):
+            layers.append(EqualizedLinear(style_dim, style_dim))
+            layers.append(nn.LeakyReLU(0.2))
+
+        self.style_mapper = nn.Sequential(*layers)
 
     def forward(self, style, alpha):
         x, rgb = self.model(x=None, style=style, alpha=alpha)
