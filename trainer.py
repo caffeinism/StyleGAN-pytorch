@@ -75,8 +75,11 @@ class Trainer:
         
         return loss.item(), (d_real.mean().item(), d_fake.mean().item())
 
-    def run(self, log_iter):
+    def run(self, log_iter, checkpoint):
         global_iter = 0
+
+        if checkpoint:
+            self.load_checkpoint(checkpoint)
         
         test_z = torch.randn(4, self.nz).cuda()
         
@@ -105,6 +108,7 @@ class Trainer:
         with torch.no_grad():
             fake = self.generator(test_z, alpha=1)
             fake = (fake + 1) * 0.5
+            fake = torch.clamp(fake, min=0.0, max=1.0)
 
         self.tb.add_scalar('loss_d', loss_d)
         self.tb.add_scalar('loss_g', loss_g)
@@ -135,3 +139,15 @@ class Trainer:
             'discriminator_optimizer': self.optimizer_d.state_dict(),
             'img_size': self.dataloader.img_size,
         }, '{}x{}.pth'.format(self.dataloader.img_size, self.dataloader.img_size))
+
+    def load_checkpoint(self, filename):
+        checkpoint = torch.load(filename)
+
+        print('load {}x{} checkpoint'.format(checkpoint['img_size'], checkpoint['img_size']))
+        while self.dataloader.img_size < checkpoint['img_size']:
+            self.grow()
+
+        self.generator.load_state_dict(checkpoint['generator'])
+        self.discriminator.load_state_dict(checkpoint['discriminator'])
+        self.optimizer_g.load_state_dict(checkpoint['generator_optimizer'])
+        self.optimizer_d.load_state_dict(checkpoint['discriminator_optimizer'])

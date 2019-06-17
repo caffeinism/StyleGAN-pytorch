@@ -7,6 +7,7 @@ import torch
 
 parser = argparse.ArgumentParser("train")
 parser.add_argument('--config', type=str, required=True)
+parser.add_argument('--checkpoint', type=str, default='')
 args, _ = parser.parse_known_args()
         
 def main(): 
@@ -26,9 +27,9 @@ def main():
         eps=config.eps,
         phase_iter=config.phase_iter,
         batch_size=config.batch_size,
-        n_cpu=config.n_cpu
+        n_cpu=config.n_cpu,
     ) 
-    trainer.run(config.log_iter)
+    trainer.run(log_iter=config.log_iter, checkpoint=args.checkpoint)
  
 if __name__ == '__main__':
     main()

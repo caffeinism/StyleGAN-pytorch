@@ -72,6 +72,25 @@ class AdaIn(nn.Module):
 
         return x
 
+class NoiseInjection_(nn.Module):
+    def __init__(self, channel):
+        super(NoiseInjection_, self).__init__()
+
+        self.weight = nn.Parameter(torch.zeros(1, channel, 1, 1))
+
+    def forward(self, x, noise):
+        return x + self.weight * noise
+
+class NoiseInjection(nn.Module):
+    def __init__(self, channel):
+        super(NoiseInjection, self).__init__()
+
+        injection = NoiseInjection_(channel)
+        self.injection = equal_lr(injection)
+
+    def forward(self, x, noise):
+        return self.injection(x, noise)
+
 # https://github.com/github-pengge/PyTorch-progressive_growing_of_gans/blob/master/models/base_model.py
 class minibatch_std_concat_layer(nn.Module):
     def __init__(self, averaging='all'):

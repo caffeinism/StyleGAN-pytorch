@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from custom_layers import EqualizedConv2d, EqualizedLinear, AdaIn, minibatch_std_concat_layer, PixelNorm
+from custom_layers import EqualizedConv2d, EqualizedLinear, AdaIn, minibatch_std_concat_layer, PixelNorm, NoiseInjection
 
 class Generator(nn.Module):
     def __init__(self, channels, style_dim, style_depth):
@@ -13,15 +13,15 @@ class Generator(nn.Module):
         self.model = UpBlock(channels[0], channels[1], style_dim, prev=None)
 
         layers = [PixelNorm()]
-        for i in range(style_depth):
+        for _ in range(style_depth):
             layers.append(EqualizedLinear(style_dim, style_dim))
             layers.append(nn.LeakyReLU(0.2))
 
         self.style_mapper = nn.Sequential(*layers)
 
     def forward(self, style, alpha):
-        x, rgb = self.model(x=None, style=style, alpha=alpha)
-        return rgb
+        x = self.model(x=None, style=style, alpha=alpha)
+        return x
 
     def grow(self):
         in_c, out_c = self.channels[self.now_growth], self.channels[self.now_growth+1] 
@@ -53,47 +53,57 @@ class UpBlock(nn.Module):
 
         self.prev = prev
 
-        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear')
+        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
 
         if prev:
             self.conv1 = EqualizedConv2d(in_channel, out_channel, 3, 1, 1)
         else:
             self.input = nn.Parameter(torch.randn(1, out_channel, 4, 4))
 
+        self.noisein1 = NoiseInjection(out_channel)
         self.adain1 = AdaIn(style_dim, out_channel)
         self.lrelu1 = nn.LeakyReLU(0.2)
 
         self.conv2 = EqualizedConv2d(out_channel, out_channel, 3, 1, 1)
+        self.noisein2 = NoiseInjection(out_channel)
         self.adain2 = AdaIn(style_dim, out_channel)
         self.lrelu2 = nn.LeakyReLU(0.2)
 
         self.to_rgb = EqualizedConv2d(out_channel, 3, 1, 1, 0)
 
-    def forward(self, x, style, alpha=-1.0):
+    # if last layer (0 <= alpha <= 1) -> return RGB image (3 channels)
+    # else return feature map of prev layer
+    def forward(self, x, style, alpha=-1.0, noise=None):
         if self.prev: # if module has prev, then forward first.
-            x, prev_rgb = self.prev(x, style, 1 if 0.0 <= alpha < 1.0 else -1.0)
+            x = self.prev(x, style)
+            prev_x = x
 
             x = self.upsample(x)
+
             x = self.conv1(x)
         else: # else initial constant
             x = self.input.repeat(style.size(0), 1, 1, 1)
 
+        # NOTE: paper's model image injection differnt noise to noise1 and noise2 layer
+        #       but, this model has just one noise per two layers
+        noise = noise if noise else torch.randn(x.size(0), 1, x.size(2), x.size(3), device=x.device)
+
+        x = self.noisein1(x, noise) 
         x = self.adain1(x, style)
         x = self.lrelu1(x)
 
         x = self.conv2(x)
+        x = self.noisein2(x, noise) 
         x = self.adain2(x, style)
         x = self.lrelu2(x)
 
         if 0.0 <= alpha < 1.0:
-            prev_rgb = self.upsample(prev_rgb)
-            rgb = alpha * self.to_rgb(x) + (1 - alpha) * prev_rgb
+            prev_rgb = self.prev.to_rgb(self.upsample(prev_x))
+            x = alpha * self.to_rgb(x) + (1 - alpha) * prev_rgb
         elif alpha == 1:
-            rgb = self.to_rgb(x)
-        else:
-            rgb = None
+            x = self.to_rgb(x)
 
-        return x, rgb
+        return x
 
 
 class DownBlock(nn.Module):
@@ -102,7 +112,8 @@ class DownBlock(nn.Module):
 
         self.next = next
 
-        self.downsample = nn.AvgPool2d(2, 2)
+        self.downsample = nn.Upsample(scale_factor=0.5, mode='bilinear', align_corners=False)
+        # same as avgpool with kernel size 2
 
         if next:
             self.conv1 = EqualizedConv2d(in_channel, out_channel, 3, 1, 1)
