@@ -21,5 +21,5 @@ Default configuration file is located in config directory.
 * [x] Tuning
 * [x] Add mapping and styles 
 * [x] Remove traditional input 
-* [ ] Add noise inputs 
+* [x] Add noise inputs 
 * [ ] Mixing regularization
