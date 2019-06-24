@@ -1,4 +1,4 @@
-dataset_dir: D:\ffhq
+dataset_dir: ~/Documents/ffhq
 nz: 512
 style_depth: 8
 const_channel: 512
@@ -7,8 +7,9 @@ betas: [0.0, 0.99]
 eps: 1.0e-8
 image_size: 4
 batch_size: {'4':64, '8':32, '16':32, '32':16, '64':16, '128':8, '256':4, '512':2, '1024':1}
+lrs: {'128':0.0015, '256':0.002, '512':0.003, '1024':0.003}
 generator_channels: [512, 512, 512, 512, 512, 256, 128, 64, 32, 16]
 discriminator_channels: [512, 512, 512, 512, 512, 256, 128, 64, 32, 16]
 log_iter: 100
 phase_iter: 600000
-n_cpu: 8
+n_cpu: 16

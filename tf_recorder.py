@@ -10,6 +10,9 @@ class tf_recorder:
             if not os.path.exists(self.targ):
                 self.writer = SummaryWriter(self.targ)
                 break
+    
+    def renew(self, subname):
+        self.writer = SummaryWriter('{}_{}'.format(self.targ, subname))
         self.niter = 0
                 
     def add_scalar(self, index, val):
@@ -21,5 +24,5 @@ class tf_recorder:
     def add_images(self, tag, images):
         self.writer.add_images(tag, images, self.niter)
 
-    def iter(self):
-        self.niter += 1
+    def iter(self, tick=1):
+        self.niter += tick

@@ -12,7 +12,7 @@ def requires_grad(model, flag=True):
         p.requires_grad = flag
 
 class Trainer:
-    def __init__(self, dataset_dir, generator_channels, discriminator_channels, nz, style_depth, lr, betas, eps, 
+    def __init__(self, dataset_dir, generator_channels, discriminator_channels, nz, style_depth, lrs, betas, eps, 
                  phase_iter, batch_size, n_cpu):
         self.nz = nz
         self.dataloader = Dataloader(dataset_dir, batch_size, phase_iter * 2, n_cpu)
@@ -23,7 +23,7 @@ class Trainer:
         self.tb = tensorboard.tf_recorder('StyleGAN')
 
         self.phase_iter = phase_iter
-        self.lr = lr
+        self.lrs = lrs
         self.betas = betas
 
     def generator_trainloop(self, batch_size, alpha):
@@ -100,6 +100,7 @@ class Trainer:
                     self.log(loss_d, loss_g, real_score, fake_score, test_z)
 
                 global_iter += 1
+                self.tb.iter(data.size(0))
 
             self.save_checkpoint()
 
@@ -115,7 +116,6 @@ class Trainer:
         self.tb.add_scalar('real_score', real_score)
         self.tb.add_scalar('fake_score', fake_score)
         self.tb.add_images('fake', fake)
-        self.tb.iter()
 
     def grow(self):
         self.discriminator.grow()
@@ -123,13 +123,18 @@ class Trainer:
         self.dataloader.grow()
         self.generator.cuda()
         self.discriminator.cuda()
+        self.tb.renew('{}x{}'.format(self.dataloader.img_size, self.dataloader.img_size))
+
+        self.lr = self.lrs.get(str(self.dataloader.img_size), 0.001)
+        self.style_lr = self.lr * 0.01
 
         self.optimizer_d = optim.Adam(params=self.discriminator.parameters(), lr=self.lr, betas=self.betas)
-        self.optimizer_g = optim.Adam(params=self.generator.model.parameters(), lr=self.lr, betas=self.betas)
-        self.optimizer_g.add_param_group({
-            'params': self.generator.style_mapper.parameters(),
-            'lr': self.lr * 0.01,
-        })
+        self.optimizer_g = optim.Adam([
+                {'params': self.generator.model.parameters(), 'lr':self.lr},
+                {'params': self.generator.style_mapper.parameters(), 'lr': self.style_lr},
+            ],
+            betas=self.betas
+        )
     
     def save_checkpoint(self):
         torch.save({
@@ -138,7 +143,7 @@ class Trainer:
             'generator_optimizer': self.optimizer_g.state_dict(),
             'discriminator_optimizer': self.optimizer_d.state_dict(),
             'img_size': self.dataloader.img_size,
-        }, '{}x{}.pth'.format(self.dataloader.img_size, self.dataloader.img_size))
+        }, 'checkpoints/{}x{}.pth'.format(self.dataloader.img_size, self.dataloader.img_size))
 
     def load_checkpoint(self, filename):
         checkpoint = torch.load(filename)

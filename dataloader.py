@@ -1,5 +1,4 @@
 import torch
-import math
 from torchvision.datasets import ImageFolder
 import torchvision.transforms as transforms
 
@@ -12,22 +11,9 @@ class Dataloader:
         self.max_tick = max_tick
         self.n_cpu = n_cpu
 
-    # TODO: Change this generator to class for use __len__ operator with tqdm 
     def __iter__(self):
-        tick = 0
-        dataloader = torch.utils.data.DataLoader(
-            self.dataset, batch_size=self.batch_size, pin_memory=True,
-            shuffle=True, drop_last=True, num_workers=self.n_cpu,
-        )
-
-        while True:
-            for data in dataloader:
-                if tick >= self.max_tick:
-                    return
-                
-                yield data, tick
-                tick += self.batch_size
-
+        return DataIter(self.dataset, self.batch_size, self.max_tick, self.n_cpu)
+        
     def grow(self):
         self.img_size *= 2
         self.batch_size = self.batch_sizes[str(self.img_size)]
@@ -39,5 +25,33 @@ class Dataloader:
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
         ]))
 
-    def len(self):
-        return math.ceil(self.max_tick / self.batch_size)
+    def __len__(self):
+        return self.max_tick // self.batch_size
+
+class DataIter:
+    def __init__(self, dataset, batch_size, max_tick, n_cpu):
+        self.dataloader = torch.utils.data.DataLoader(
+            dataset, batch_size=batch_size, pin_memory=True,
+            shuffle=True, drop_last=True, num_workers=n_cpu,
+        )
+        self.iter = iter(self.dataloader)
+        self.tick = 0
+        self.batch_size = batch_size
+        self.max_tick = max_tick
+
+    def __next__(self):
+        if self.tick >= self.max_tick:
+            raise StopIteration
+
+        try:
+            data = next(self.iter)
+        except StopIteration as e:
+            self.iter = iter(self.dataloader)
+            data = next(self.iter)
+        
+        self.tick += self.batch_size
+        
+        return data, self.tick
+
+    def __len__(self):
+        return self.max_tick // self.batch_size
