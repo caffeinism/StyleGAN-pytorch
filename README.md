@@ -45,7 +45,7 @@ This seems to be balancing(real_score=fake_score=0), but I think it will require
 ![8x8](images/8x8.png)
 ### 16x16 images
 ![16x16](images/16x16.png)
-###32x32 images
+### 32x32 images
 ![32x32](images/32x32.png)
 ### 64x64 images
 ![64x64](images/64x64.png)
