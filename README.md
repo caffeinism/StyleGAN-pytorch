@@ -1,11 +1,5 @@
 # Pytorch implementation of [A Style-Based Generator Architecture for Generative Adversarial Network](https://arxiv.org/abs/1812.04948)
 
-## Requirements
-
-- Python3
-- Pytorch 1.0.0
-- TensorBoardX
-
 ## Usage
 
 train
@@ -23,15 +17,6 @@ python main.py
 ```
 
 Default configuration file is located in config directory.
-
-## Currently completed task
-
-* [x] Progressive method
-* [x] Tuning
-* [x] Add mapping and styles 
-* [x] Remove traditional input 
-* [x] Add noise inputs 
-* [ ] Mixing regularization
 
 ## Fake image and real image score graph
 
@@ -53,3 +38,24 @@ This seems to be balancing(real_score=fake_score=0), but I think it will require
 ![128x128](images/128x128.png)
 
 As I said above, I think It needs to train more iteration. But my computer is very slow, so it will take more time for the results to be updated.
+
+## Network Structure
+
+![structure](images/structure.png)
+
+It was designed as a linked list structure. The execution process seems to be recursive.
+
+## Requirements
+
+- Python3
+- Pytorch 1.0.0
+- TensorBoardX
+
+## Currently completed task
+
+* [x] Progressive method
+* [x] Tuning
+* [x] Add mapping and styles 
+* [x] Remove traditional input 
+* [x] Add noise inputs 
+* [ ] Mixing regularization
