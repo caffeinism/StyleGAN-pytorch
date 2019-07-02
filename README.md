@@ -2,6 +2,8 @@
 
 ## Requirements
 
+- fire
+- apex
 - Python3
 - Pytorch 1.0.0
 - TensorBoardX
@@ -11,15 +13,15 @@
 train
 ```
 python main.py 
-    --config=path_to_config_file
+    --config_file=path_to_config_file
     --checkpoint=path_to_config_file[default='']
 ```
 
 inference
 ```
 python main.py 
-    --config=path_to_config_file
-    --type=inference
+    --config_file=path_to_config_file
+    --run_type=inference
 ```
 
 Default configuration file is located in config directory.
