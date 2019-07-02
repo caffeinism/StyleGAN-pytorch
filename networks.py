@@ -88,8 +88,7 @@ class UpBlock(nn.Module):
     def forward(self, x, style, alpha=-1.0, noise=None):
         if self.prev: # if module has prev, then forward first.
             w, style = style[-1], style[:-1] # pop last style
-            x = self.prev(x, style)
-            prev_x = x
+            prev_x = x = self.prev(x, style)
 
             x = self.upsample(x)
 

@@ -92,26 +92,20 @@ class Trainer:
 
     def run(self, log_iter, checkpoint):
         global_iter = 0
-
-        last_tick = 0
-        if checkpoint:
-            last_tick = self.load_checkpoint(checkpoint)
-            if last_tick == 'last':
-                self.grow()
-                last_tick = 0
-        else:
-            self.grow()
         
         test_z = torch.randn(4, self.nz).cuda()
-        
+
+        if checkpoint:
+            self.load_checkpoint(checkpoint)
+        else:
+            self.grow()
+
         while True:
             # NOTE: Start gen & dis from 8x8 img size. But 4x4 img is not trained, 
             #       so 'fade in' method is not good at this time.
 
             print('train {}X{} images...'.format(self.dataloader.img_size, self.dataloader.img_size))
             for iter, ((data, _), n_trained_samples) in enumerate(tqdm(self.dataloader), 1):
-                if n_trained_samples < last_tick: continue
-
                 real = data.cuda()
                 alpha = min(1, n_trained_samples / self.phase_iter) if self.dataloader.img_size > 8 else 1
 
@@ -129,7 +123,6 @@ class Trainer:
                 self.tb.iter(data.size(0))
 
             self.save_checkpoint()
-            last_tick = 0
             self.grow()
 
 
@@ -195,4 +188,8 @@ class Trainer:
         self.optimizer_g.load_state_dict(checkpoint['generator_optimizer'])
         self.optimizer_d.load_state_dict(checkpoint['discriminator_optimizer'])
 
-        return checkpoint.get('tick', 0)
+        if checkpoint['tick'] == 'last':
+            self.grow()
+        else:
+            self.dataloader.max_tick -= checkpoint['tick']
+            self.tb.iter(checkpoint['tick'])
