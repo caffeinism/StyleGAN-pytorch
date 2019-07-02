@@ -20,7 +20,8 @@ class Generator(nn.Module):
         self.style_mapper = nn.Sequential(*layers)
 
     def forward(self, style, alpha):
-        x = self.model(x=None, style=style, alpha=alpha)
+        style_w = self.style_mapper(style)
+        x = self.model(x=None, style=style_w, alpha=alpha)
         return x
 
     def grow(self):
