@@ -3,20 +3,15 @@ from config import Config
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torch
+import fire
 
-parser = argparse.ArgumentParser("train")
-parser.add_argument('--config', type=str, required=True)
-parser.add_argument('--type', type=str, default='train')
-parser.add_argument('--checkpoint', type=str, default='')
-args, _ = parser.parse_known_args()
-        
-def main(): 
+def main(config_file, run_type='train', checkpoint=''): 
     # pylint: disable=no-member
-    config = Config(args.config)
+    config = Config(config_file)
 
     print(config)
 
-    if args.type == 'train':
+    if run_type == 'train':
         from trainer import Trainer
         trainer = Trainer(
             dataset_dir=config.dataset_dir, 
@@ -31,8 +26,11 @@ def main():
             batch_size=config.batch_size,
             n_cpu=config.n_cpu,
         ) 
-        trainer.run(log_iter=config.log_iter, checkpoint=args.checkpoint)
-    elif args.type == 'inference':
+        trainer.run(
+            log_iter=config.log_iter, 
+            checkpoint=checkpoint
+        )
+    elif run_type == 'inference':
         from inferencer import Inferencer
         inferencer = Inferencer(
             generator_channels=config.generator_channels,
@@ -44,4 +42,4 @@ def main():
         raise NotImplementedError
     
 if __name__ == '__main__':
-    main()
+    fire.Fire(main)

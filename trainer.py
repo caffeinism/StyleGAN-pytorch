@@ -15,7 +15,7 @@ class Trainer:
     def __init__(self, dataset_dir, generator_channels, discriminator_channels, nz, style_depth, lrs, betas, eps, 
                  phase_iter, batch_size, n_cpu):
         self.nz = nz
-        self.dataloader = Dataloader(dataset_dir, batch_size, phase_iter * 2, n_cpu)
+        self.dataloader = Dataloader(dataset_dir, batch_size, phase_iter * 3, n_cpu)
 
         self.generator = Generator(generator_channels, nz, style_depth).cuda()
         self.discriminator = Discriminator(discriminator_channels).cuda()
@@ -78,18 +78,25 @@ class Trainer:
     def run(self, log_iter, checkpoint):
         global_iter = 0
 
+        last_tick = 0
         if checkpoint:
-            self.load_checkpoint(checkpoint)
+            last_tick = self.load_checkpoint(checkpoint)
+            if last_tick == 'last':
+                self.grow()
+                last_tick = 0
+        else:
+            self.grow()
         
         test_z = torch.randn(4, self.nz).cuda()
         
         while True:
             # NOTE: Start gen & dis from 8x8 img size. But 4x4 img is not trained, 
             #       so 'fade in' method is not good at this time.
-            self.grow()
 
             print('train {}X{} images...'.format(self.dataloader.img_size, self.dataloader.img_size))
-            for (data, _), n_trained_samples in tqdm(self.dataloader):
+            for iter, ((data, _), n_trained_samples) in enumerate(tqdm(self.dataloader), 1):
+                if n_trained_samples < last_tick: continue
+
                 real = data.cuda()
                 alpha = min(1, n_trained_samples / self.phase_iter) if self.dataloader.img_size > 8 else 1
 
@@ -97,17 +104,23 @@ class Trainer:
                 loss_g = self.generator_trainloop(real.size(0), alpha)
 
                 if global_iter % log_iter == 0:
-                    self.log(loss_d, loss_g, real_score, fake_score, test_z)
+                    self.log(loss_d, loss_g, real_score, fake_score, test_z, alpha)
+
+                # save 3 times during training
+                if iter % (len(self.dataloader) // 4 + 1) == 0:
+                    self.save_checkpoint(n_trained_samples)
 
                 global_iter += 1
                 self.tb.iter(data.size(0))
 
             self.save_checkpoint()
+            last_tick = 0
+            self.grow()
 
 
-    def log(self, loss_d, loss_g, real_score, fake_score, test_z):
+    def log(self, loss_d, loss_g, real_score, fake_score, test_z, alpha):
         with torch.no_grad():
-            fake = self.generator(test_z, alpha=1)
+            fake = self.generator(test_z, alpha=alpha)
             fake = (fake + 1) * 0.5
             fake = torch.clamp(fake, min=0.0, max=1.0)
 
@@ -135,15 +148,16 @@ class Trainer:
             ],
             betas=self.betas
         )
-    
-    def save_checkpoint(self):
+
+    def save_checkpoint(self, tick='last'):
         torch.save({
             'generator': self.generator.state_dict(),
             'discriminator': self.discriminator.state_dict(),
             'generator_optimizer': self.optimizer_g.state_dict(),
             'discriminator_optimizer': self.optimizer_d.state_dict(),
             'img_size': self.dataloader.img_size,
-        }, 'checkpoints/{}x{}.pth'.format(self.dataloader.img_size, self.dataloader.img_size))
+            'tick': tick,
+        }, 'checkpoints/{}x{}_{}.pth'.format(self.dataloader.img_size, self.dataloader.img_size, tick))
 
     def load_checkpoint(self, filename):
         checkpoint = torch.load(filename)
@@ -156,3 +170,5 @@ class Trainer:
         self.discriminator.load_state_dict(checkpoint['discriminator'])
         self.optimizer_g.load_state_dict(checkpoint['generator_optimizer'])
         self.optimizer_d.load_state_dict(checkpoint['discriminator_optimizer'])
+
+        return checkpoint.get('tick', 0)
