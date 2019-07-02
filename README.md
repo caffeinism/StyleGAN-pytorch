@@ -1,5 +1,10 @@
 # Pytorch implementation of [A Style-Based Generator Architecture for Generative Adversarial Network](https://arxiv.org/abs/1812.04948)
 
+# IMPORTANT NOTES
+
+Previously, style_mapper did not work properly. It just feed z to generator. 
+Now, generator was fixed. I train model again to get a good results. T_T
+
 ## Requirements
 
 - fire
@@ -7,8 +12,6 @@
 - Python3
 - Pytorch 1.0.0
 - TensorBoardX
-
-if you want to use apex.amp, visit [this](https://github.com/MakeDirtyCode/StyleGAN-pytorch/tree/amp-support) branch. 
 
 ## Usage
 
