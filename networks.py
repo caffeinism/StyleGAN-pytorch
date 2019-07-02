@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from custom_layers import EqualizedConv2d, EqualizedLinear, AdaIn, minibatch_std_concat_layer, PixelNorm, NoiseInjection
+import random
 
 class Generator(nn.Module):
     def __init__(self, channels, style_dim, style_depth):
@@ -19,9 +20,19 @@ class Generator(nn.Module):
 
         self.style_mapper = nn.Sequential(*layers)
 
-    def forward(self, style, alpha):
-        style_w = self.style_mapper(style)
-        x = self.model(x=None, style=style_w, alpha=alpha)
+    def forward(self, z, alpha):
+        if type(z) not in (tuple, list):
+            w = self.style_mapper(z)
+            w = [w for _ in range(self.now_growth)]
+        else:
+            assert len(z) == 2  # now, only support mix two styles
+            w1, w2 = self.style_mapper(z[0]), self.style_mapper(z[1])
+            point = random.randint(1, self.now_growth-1)
+            # layer_0 ~ layer_p: style with w1
+            # layer_p ~ layer_n: style with w2
+            w = [w1 for _ in range(point)] + [w2 for _ in range(point, self.now_growth)]
+
+        x = self.model(x=None, style=w, alpha=alpha)
         return x
 
     def grow(self):
@@ -76,6 +87,7 @@ class UpBlock(nn.Module):
     # else return feature map of prev layer
     def forward(self, x, style, alpha=-1.0, noise=None):
         if self.prev: # if module has prev, then forward first.
+            w, style = style[-1], style[:-1] # pop last style
             x = self.prev(x, style)
             prev_x = x
 
@@ -83,19 +95,20 @@ class UpBlock(nn.Module):
 
             x = self.conv1(x)
         else: # else initial constant
-            x = self.input.repeat(style.size(0), 1, 1, 1)
+            w = style[0]
+            x = self.input.repeat(w.size(0), 1, 1, 1)
 
         # NOTE: paper's model image injection differnt noise to noise1 and noise2 layer
         #       but, this model has just one noise per two layers
         noise = noise if noise else torch.randn(x.size(0), 1, x.size(2), x.size(3), device=x.device)
 
         x = self.noisein1(x, noise) 
-        x = self.adain1(x, style)
+        x = self.adain1(x, w)
         x = self.lrelu1(x)
 
         x = self.conv2(x)
         x = self.noisein2(x, noise) 
-        x = self.adain2(x, style)
+        x = self.adain2(x, w)
         x = self.lrelu2(x)
 
         if 0.0 <= alpha < 1.0:

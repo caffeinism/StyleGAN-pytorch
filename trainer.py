@@ -7,6 +7,7 @@ from tqdm import tqdm
 from dataloader import Dataloader
 from torch.autograd import grad
 from apex import amp
+import random
 
 def requires_grad(model, flag=True):
     for p in model.parameters():
@@ -31,7 +32,12 @@ class Trainer:
         requires_grad(self.generator, True)
         requires_grad(self.discriminator, False)
         
-        z = torch.randn(batch_size, self.nz).cuda()
+        # mixing regularization
+        if random.random() < 0.9:
+            z = [torch.randn(batch_size, self.nz).cuda(),
+                 torch.randn(batch_size, self.nz).cuda()]
+        else:
+            z = torch.randn(batch_size, self.nz).cuda()
 
         fake = self.generator(z, alpha=alpha)
         d_fake = self.discriminator(fake, alpha=alpha)
@@ -66,7 +72,11 @@ class Trainer:
         with amp.scale_loss(grad_penalty, self.optimizer_d) as scaled_grad_penalty:
             scaled_grad_penalty.backward()
         
-        z = torch.randn(real.size(0), self.nz).cuda()
+        if random.random() < 0.9:
+            z = [torch.randn(real.size(0), self.nz).cuda(),
+                 torch.randn(real.size(0), self.nz).cuda()]
+        else:
+            z = torch.randn(real.size(0), self.nz).cuda()
 
         fake = self.generator(z, alpha=alpha)
         d_fake = self.discriminator(fake, alpha=alpha)

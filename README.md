@@ -1,8 +1,9 @@
 # Pytorch implementation of [A Style-Based Generator Architecture for Generative Adversarial Network](https://arxiv.org/abs/1812.04948)
 
-# IMPORTANT NOTES
+# IMPORTANT NOTES (7/2)
 
 Previously, style_mapper did not work properly. It just feed z to generator. 
+
 Now, generator was fixed. I train model again to get a good results. T_T
 
 ## Requirements
@@ -38,7 +39,7 @@ Default configuration file is located in config directory.
 * [x] Add mapping and styles 
 * [x] Remove traditional input 
 * [x] Add noise inputs 
-* [ ] Mixing regularization
+* [x] Mixing regularization
 
 ## Fake image and real image score graph
 
