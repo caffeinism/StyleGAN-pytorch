@@ -16,7 +16,7 @@ class Trainer:
     def __init__(self, dataset_dir, generator_channels, discriminator_channels, nz, style_depth, lrs, betas, eps, 
                  phase_iter, batch_size, n_cpu):
         self.nz = nz
-        self.dataloader = Dataloader(dataset_dir, batch_size, phase_iter * 2, n_cpu)
+        self.dataloader = Dataloader(dataset_dir, batch_size, phase_iter * 3, n_cpu)
 
         self.generator = Generator(generator_channels, nz, style_depth).cuda()
         self.discriminator = Discriminator(discriminator_channels).cuda()

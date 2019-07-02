@@ -8,6 +8,8 @@
 - Pytorch 1.0.0
 - TensorBoardX
 
+if you want to use apex.amp, visit [this](https://github.com/MakeDirtyCode/StyleGAN-pytorch/tree/amp-support) branch. 
+
 ## Usage
 
 train
