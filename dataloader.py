@@ -6,15 +6,19 @@ class Dataloader:
     def __init__(self, dataset_dir, batch_sizes, max_tick, n_cpu):
         self.dataset_dir = dataset_dir
         self.batch_sizes = batch_sizes
-        self.img_size = 2
-        self.grow()
+        self.img_size = 4
         self.max_tick = max_tick
+        self.n_tick = max_tick
         self.n_cpu = n_cpu
 
     def __iter__(self):
-        return DataIter(self.dataset, self.batch_size, self.max_tick, self.n_cpu)
-        
+        return DataIter(self.dataset, self.batch_size, self.n_tick, self.n_cpu)
+    
+    def set_checkpoint(self, checkpoint_tick):
+        self.n_tick = self.max_tick - checkpoint_tick
+
     def grow(self):
+        self.n_tick = self.max_tick
         self.img_size *= 2
         self.batch_size = self.batch_sizes[str(self.img_size)]
 
@@ -26,7 +30,7 @@ class Dataloader:
         ]))
 
     def __len__(self):
-        return self.max_tick // self.batch_size
+        return self.n_tick // self.batch_size
 
 class DataIter:
     def __init__(self, dataset, batch_size, max_tick, n_cpu):

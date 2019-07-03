@@ -17,7 +17,7 @@ class Trainer:
     def __init__(self, dataset_dir, generator_channels, discriminator_channels, nz, style_depth, lrs, betas, eps, 
                  phase_iter, batch_size, n_cpu):
         self.nz = nz
-        self.dataloader = Dataloader(dataset_dir, batch_size, phase_iter * 3, n_cpu)
+        self.dataloader = Dataloader(dataset_dir, batch_size, phase_iter * 2, n_cpu)
 
         self.generator = Generator(generator_channels, nz, style_depth).cuda()
         self.discriminator = Discriminator(discriminator_channels).cuda()
@@ -191,5 +191,8 @@ class Trainer:
         if checkpoint['tick'] == 'last':
             self.grow()
         else:
-            self.dataloader.max_tick -= checkpoint['tick']
+            self.dataloader.set_checkpoint(checkpoint['tick'])
             self.tb.iter(checkpoint['tick'])
+
+
+# TODO: dataloader에 max_tick을 직접 조정하지 않고 checkpoint에서 load했을 때 크기를 조정해야함.
