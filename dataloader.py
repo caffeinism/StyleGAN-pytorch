@@ -8,17 +8,17 @@ class Dataloader:
         self.batch_sizes = batch_sizes
         self.img_size = 4
         self.max_tick = max_tick
-        self.n_tick = max_tick
+        self.checkpoint = 0
         self.n_cpu = n_cpu
 
     def __iter__(self):
-        return DataIter(self.dataset, self.batch_size, self.n_tick, self.n_cpu)
+        return DataIter(self.dataset, self.batch_size, self.max_tick, self.checkpoint, self.n_cpu)
     
     def set_checkpoint(self, checkpoint_tick):
-        self.n_tick = self.max_tick - checkpoint_tick
+        self.checkpoint = checkpoint_tick
 
     def grow(self):
-        self.n_tick = self.max_tick
+        self.checkpoint = 0
         self.img_size *= 2
         self.batch_size = self.batch_sizes[str(self.img_size)]
 
@@ -30,16 +30,16 @@ class Dataloader:
         ]))
 
     def __len__(self):
-        return self.n_tick // self.batch_size
+        return (self.max_tick - self.checkpoint) // self.batch_size
 
 class DataIter:
-    def __init__(self, dataset, batch_size, max_tick, n_cpu):
+    def __init__(self, dataset, batch_size, max_tick, checkpoint, n_cpu):
         self.dataloader = torch.utils.data.DataLoader(
             dataset, batch_size=batch_size, pin_memory=True,
             shuffle=True, drop_last=True, num_workers=n_cpu,
         )
         self.iter = iter(self.dataloader)
-        self.tick = 0
+        self.tick = self.checkpoint = checkpoint
         self.batch_size = batch_size
         self.max_tick = max_tick
 
@@ -58,4 +58,4 @@ class DataIter:
         return data, self.tick
 
     def __len__(self):
-        return self.max_tick // self.batch_size
+        return (self.max_tick - self.checkpoint) // self.batch_size

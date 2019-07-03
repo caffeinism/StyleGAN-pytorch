@@ -8,11 +8,15 @@ Now, generator was fixed. I train model again to get a good results. T_T
 
 ## Requirements
 
-- fire
-- apex
 - Python3
-- Pytorch 1.0.0
+- Pytorch > 1.0.0
 - TensorBoardX
+- fire
+- apex [optional] 
+
+I recommend install apex. apex.amp improves memory efficiency and learning speed using [mixed precision](https://arxiv.org/abs/1710.03740).
+
+But you do not need to install it if you do not want it.
 
 ## Usage
 
@@ -45,9 +49,8 @@ Default configuration file is located in config directory.
 
 ![graph](images/graph.png)
 
-This seems to be balancing(real_score=fake_score=0), but I think it will require more iteration.
-
 ## Inference Images
+#### NOTE: These images does not use style mapping network. (just using z, the normal distribution) I still training for upload style mapped images. It will be updated 256x256 images with pretrained checkpoints. (I do not have an environment to train high resolution images ... please contribute!)
 
 ### 8x8 images
 ![8x8](images/8x8.png)
@@ -59,5 +62,3 @@ This seems to be balancing(real_score=fake_score=0), but I think it will require
 ![64x64](images/64x64.png)
 ### 128x128 images
 ![128x128](images/128x128.png)
-
-As I said above, I think It needs to train more iteration. But my computer is very slow, so it will take more time for the results to be updated.

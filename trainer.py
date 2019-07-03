@@ -6,7 +6,7 @@ import tf_recorder as tensorboard
 from tqdm import tqdm
 from dataloader import Dataloader
 from torch.autograd import grad
-from apex import amp
+import amp_support as amp
 import random
 
 def requires_grad(model, flag=True):
@@ -101,9 +101,6 @@ class Trainer:
             self.grow()
 
         while True:
-            # NOTE: Start gen & dis from 8x8 img size. But 4x4 img is not trained, 
-            #       so 'fade in' method is not good at this time.
-
             print('train {}X{} images...'.format(self.dataloader.img_size, self.dataloader.img_size))
             for iter, ((data, _), n_trained_samples) in enumerate(tqdm(self.dataloader), 1):
                 real = data.cuda()
@@ -157,14 +154,11 @@ class Trainer:
             betas=self.betas
         )
 
-        self.generator, self.optimizer_g = amp.initialize(
-            self.generator, self.optimizer_g,
+        [self.generator, self.discriminator], [self.optimizer_g, self.optimizer_d] = amp.initialize(
+            [self.generator, self.discriminator], 
+            [self.optimizer_g, self.optimizer_d],
             opt_level='O1'
         )    
-        self.discriminator, self.optimizer_d = amp.initialize(
-            self.discriminator, self.optimizer_d,
-            opt_level='O1'
-        )
 
     def save_checkpoint(self, tick='last'):
         torch.save({
@@ -193,6 +187,3 @@ class Trainer:
         else:
             self.dataloader.set_checkpoint(checkpoint['tick'])
             self.tb.iter(checkpoint['tick'])
-
-
-# TODO: dataloader에 max_tick을 직접 조정하지 않고 checkpoint에서 load했을 때 크기를 조정해야함.
