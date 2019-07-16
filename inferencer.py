@@ -14,10 +14,11 @@ class Inferencer:
         with torch.no_grad():
             self.grow()
             img_size = 8
-            filename = 'checkpoints/{}x{}.pth'.format(img_size, img_size)
+            filename = 'checkpoints/{}x{}_last.pth'.format(img_size, img_size)
             while os.path.isfile(filename):
                 self.load_checkpoint(img_size, filename)
                 
+                self.generator.eval()
                 fake = self.generator(test_z, alpha=1)
                 fake = (fake + 1) * 0.5
                 fake = torch.clamp(fake, min=0.0, max=1.0)
@@ -27,7 +28,7 @@ class Inferencer:
 
                 self.grow()
                 img_size *= 2
-                filename = 'checkpoints/{}x{}.pth'.format(img_size, img_size)
+                filename = 'checkpoints/{}x{}_last.pth'.format(img_size, img_size)
 
 
     def grow(self):

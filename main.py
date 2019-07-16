@@ -25,6 +25,7 @@ def main(config_file, run_type='train', checkpoint=''):
             phase_iter=config.phase_iter,
             batch_size=config.batch_size,
             n_cpu=config.n_cpu,
+            opt_level=config.opt_level
         ) 
         trainer.run(
             log_iter=config.log_iter, 

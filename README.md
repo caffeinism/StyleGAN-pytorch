@@ -1,11 +1,5 @@
 # Pytorch implementation of [A Style-Based Generator Architecture for Generative Adversarial Network](https://arxiv.org/abs/1812.04948)
 
-# IMPORTANT NOTES (7/2)
-
-Previously, style_mapper did not work properly. It just feed z to generator. 
-
-Now, generator was fixed. I train model again to get a good results. T_T
-
 ## Requirements
 
 - Python3
@@ -13,10 +7,6 @@ Now, generator was fixed. I train model again to get a good results. T_T
 - TensorBoardX
 - fire
 - apex [optional] 
-
-I recommend install apex. apex.amp improves memory efficiency and learning speed using [mixed precision](https://arxiv.org/abs/1710.03740).
-
-But you do not need to install it if you do not want it.
 
 ## Usage
 
@@ -47,10 +37,31 @@ Default configuration file is located in config directory.
 
 ## Fake image and real image score graph
 
-![graph](images/graph.png)
+### fp32 precision
+![fp32_score](images/fp32_score.png)
+
+### mixed precision
+![mixed_score](images/mixed_score.png)
+
+There seems to be no difference in the score.
+
+## Discriminator loss
+
+### fp32 precision
+![fp32_dloss](images/fp32_loss_d.png)
+
+### mixed precision
+![mixed_dloss](images/mixed_loss_d.png)
+
+There is a problem with R1 regularization, so training does not work properly. This also affects image samples. It would be better not to use it now.
+
+## Train speed
+
+![precision_speed](images/precision_speed.png)
+
+There seems to be a clear speed difference depending on the precision, but it seems to be meaningless because the mixed precision training isn't done properly.
 
 ## Inference Images
-#### NOTE: These images does not use style mapping network. (just using z, the normal distribution) I still training for upload style mapped images. It will be updated 256x256 images with pretrained checkpoints. (I do not have an environment to train high resolution images ... please contribute!)
 
 ### 8x8 images
 ![8x8](images/8x8.png)
@@ -62,3 +73,11 @@ Default configuration file is located in config directory.
 ![64x64](images/64x64.png)
 ### 128x128 images
 ![128x128](images/128x128.png)
+### 256x256 images
+![256x256](images/256x256.png)
+
+## Pretrained checkpoint
+
+[256x256](https://drive.google.com/file/d/1YDNeDD5G-BI5Zx5RGnlggBMFinp2z8OH/view?usp=sharing)
+
+I will try to train 512x512 resolution, but it will be uploaded a week later.

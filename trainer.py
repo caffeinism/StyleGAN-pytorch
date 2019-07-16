@@ -15,7 +15,7 @@ def requires_grad(model, flag=True):
 
 class Trainer:
     def __init__(self, dataset_dir, generator_channels, discriminator_channels, nz, style_depth, lrs, betas, eps, 
-                 phase_iter, batch_size, n_cpu):
+                 phase_iter, batch_size, n_cpu, opt_level):
         self.nz = nz
         self.dataloader = Dataloader(dataset_dir, batch_size, phase_iter * 2, n_cpu)
 
@@ -27,6 +27,8 @@ class Trainer:
         self.phase_iter = phase_iter
         self.lrs = lrs
         self.betas = betas
+
+        self.opt_level = opt_level
 
     def generator_trainloop(self, batch_size, alpha):
         requires_grad(self.generator, True)
@@ -157,7 +159,7 @@ class Trainer:
         [self.generator, self.discriminator], [self.optimizer_g, self.optimizer_d] = amp.initialize(
             [self.generator, self.discriminator], 
             [self.optimizer_g, self.optimizer_d],
-            opt_level='O1'
+            opt_level=self.opt_level
         )    
 
     def save_checkpoint(self, tick='last'):
