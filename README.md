@@ -79,5 +79,3 @@ There seems to be a clear speed difference depending on the precision, but it se
 ## Pretrained checkpoint
 
 [256x256](https://drive.google.com/file/d/1YDNeDD5G-BI5Zx5RGnlggBMFinp2z8OH/view?usp=sharing)
-
-I will try to train 512x512 resolution, but it will be uploaded a week later.
