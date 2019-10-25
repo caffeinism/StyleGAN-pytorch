@@ -7,6 +7,7 @@
 - TensorBoardX
 - fire
 - apex [optional] 
+- pyyaml
 
 ## Usage
 
