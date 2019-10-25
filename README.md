@@ -3,7 +3,7 @@
 ## Requirements
 
 - Python3
-- Pytorch > 1.0.0
+- Pytorch >= 1.0.0
 - TensorBoardX
 - fire
 - apex [optional] 
