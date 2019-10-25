@@ -1,4 +1,4 @@
-dataset_dir: ~/Documents/ffhq
+dataset_dir: ../ffhq
 nz: 512
 style_depth: 8
 const_channel: 512
@@ -12,5 +12,5 @@ generator_channels: [512, 512, 512, 512, 512, 256, 128, 64, 32, 16]
 discriminator_channels: [512, 512, 512, 512, 512, 256, 128, 64, 32, 16]
 log_iter: 100
 phase_iter: 600000
-n_cpu: 12
+n_cpu: 32
 opt_level: O0

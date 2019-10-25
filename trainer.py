@@ -13,14 +13,35 @@ def requires_grad(model, flag=True):
     for p in model.parameters():
         p.requires_grad = flag
 
+class DummyDataParallel(torch.nn.Module):
+    def __init__(self, module):
+        super(DummyDataParallel, self).__init__()
+        self.module = module
+
+    def forward(self, *args, **kwargs):
+        return self.module(*args, **kwargs)
+
+def DataParallel(module):
+    if torch.cuda.device_count() > 1:
+        return torch.nn.DataParallel(module)
+    else:
+        return DummyDataParallel(module) # For a consistent model structure
+
+def cuda(module):
+    if torch.cuda.device_count() > 0:
+        return module.cuda()
+    else:
+        print('Warning: cuda cannot be activated.')
+        return module
+
 class Trainer:
     def __init__(self, dataset_dir, generator_channels, discriminator_channels, nz, style_depth, lrs, betas, eps, 
                  phase_iter, batch_size, n_cpu, opt_level):
         self.nz = nz
         self.dataloader = Dataloader(dataset_dir, batch_size, phase_iter * 2, n_cpu)
 
-        self.generator = Generator(generator_channels, nz, style_depth).cuda()
-        self.discriminator = Discriminator(discriminator_channels).cuda()
+        self.generator = cuda(DataParallel(Generator(generator_channels, nz, style_depth)))
+        self.discriminator = cuda(DataParallel(Discriminator(discriminator_channels)))
 
         self.tb = tensorboard.tf_recorder('StyleGAN')
 
@@ -127,7 +148,7 @@ class Trainer:
 
     def log(self, loss_d, loss_g, real_score, fake_score, test_z, alpha):
         with torch.no_grad():
-            fake = self.generator(test_z, alpha=alpha)
+            fake = self.generator.module(test_z, alpha=alpha)
             fake = (fake + 1) * 0.5
             fake = torch.clamp(fake, min=0.0, max=1.0)
 
@@ -138,11 +159,9 @@ class Trainer:
         self.tb.add_images('fake', fake)
 
     def grow(self):
-        self.discriminator.grow()
-        self.generator.grow()
+        self.discriminator = cuda(DataParallel(self.discriminator.module.grow()))
+        self.generator = cuda(DataParallel(self.generator.module.grow()))
         self.dataloader.grow()
-        self.generator.cuda()
-        self.discriminator.cuda()
         self.tb.renew('{}x{}'.format(self.dataloader.img_size, self.dataloader.img_size))
 
         self.lr = self.lrs.get(str(self.dataloader.img_size), 0.001)
@@ -150,8 +169,8 @@ class Trainer:
 
         self.optimizer_d = optim.Adam(params=self.discriminator.parameters(), lr=self.lr, betas=self.betas)
         self.optimizer_g = optim.Adam([
-                {'params': self.generator.model.parameters(), 'lr':self.lr},
-                {'params': self.generator.style_mapper.parameters(), 'lr': self.style_lr},
+                {'params': self.generator.module.model.parameters(), 'lr':self.lr},
+                {'params': self.generator.module.style_mapper.parameters(), 'lr': self.style_lr},
             ],
             betas=self.betas
         )

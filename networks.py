@@ -40,6 +40,8 @@ class Generator(nn.Module):
         self.model = UpBlock(in_c, out_c, self.style_dim, prev=self.model)
         self.now_growth += 1
 
+        return self
+
 
 class Discriminator(nn.Module):
     def __init__(self, channels):
@@ -57,6 +59,8 @@ class Discriminator(nn.Module):
         in_c, out_c = self.channels[self.now_growth+1], self.channels[self.now_growth] 
         self.model = DownBlock(in_c, out_c, next=self.model)
         self.now_growth += 1
+
+        return self
 
 
 class UpBlock(nn.Module):
