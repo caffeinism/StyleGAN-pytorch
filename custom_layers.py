@@ -97,7 +97,7 @@ class minibatch_stddev_layer(nn.Module):
         self.group_size = group_size
         self.num_new_features = num_new_features
 
-    def _forward(self, x):
+    def forward(self, x):
         group_size = min(self.group_size, x.size(0))
         origin_shape = x.shape
         
