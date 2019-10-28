@@ -35,7 +35,7 @@ class Dataloader:
 class DataIter:
     def __init__(self, dataset, batch_size, max_tick, checkpoint, n_cpu):
         self.dataloader = torch.utils.data.DataLoader(
-            dataset, batch_size=batch_size, pin_memory=True,
+            dataset, batch_size=batch_size,
             shuffle=True, drop_last=True, num_workers=n_cpu,
         )
         self.iter = iter(self.dataloader)

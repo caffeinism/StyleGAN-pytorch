@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from custom_layers import EqualizedConv2d, EqualizedLinear, AdaIn, minibatch_std_concat_layer, PixelNorm, NoiseInjection
+from custom_layers import EqualizedConv2d, EqualizedLinear, AdaIn, minibatch_stddev_layer, PixelNorm, NoiseInjection
 import random
 
 class Generator(nn.Module):
@@ -136,7 +136,7 @@ class DownBlock(nn.Module):
             self.conv1 = EqualizedConv2d(in_channel, out_channel, 3, 1, 1)
             self.conv2 = EqualizedConv2d(out_channel, out_channel, 3, 1, 1)
         else:
-            self.minibatch_std = minibatch_std_concat_layer()
+            self.minibatch_std = minibatch_stddev_layer()
 
             self.conv1 = EqualizedConv2d(in_channel + 1, out_channel, 3, 1, 1)
             self.conv2 = EqualizedConv2d(out_channel, out_channel, 4, 1, 0)
