@@ -118,7 +118,7 @@ class minibatch_stddev_layer(nn.Module):
         # [G, F, 1, 1, 1]
         y = torch.squeeze(y, dim=2)
         # [G, F, 1, 1] 
-        y = y.repeat(self.group_size, 1, origin_shape[2], origin_shape[3])
+        y = y.repeat(group_size, 1, origin_shape[2], origin_shape[3])
         # [B, F, H, W]
         
         return torch.cat([x, y], dim=1)
