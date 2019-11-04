@@ -1,12 +1,13 @@
 from tensorboardX import SummaryWriter
 import os, sys
+import os.path
 
 # https://github.com/nashory/pggan-pytorch/blob/master/tf_recorder.py
 class tf_recorder:
-    def __init__(self, network_name):
-        os.system('mkdir -p repo/tensorboard')
+    def __init__(self, network_name, log_dir):
+        os.system('mkdir -p {}'.format(log_dir))
         for i in range(1000):
-            self.targ = 'repo/tensorboard/{}_{}'.format(network_name, i)
+            self.targ = os.path.join(log_dir, '{}_{}'.format(network_name, i))
             if not os.path.exists(self.targ):
                 self.writer = SummaryWriter(self.targ)
                 break
@@ -26,3 +27,4 @@ class tf_recorder:
 
     def iter(self, tick=1):
         self.niter += tick
+

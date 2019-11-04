@@ -77,13 +77,13 @@ class UpBlock(nn.Module):
             self.input = nn.Parameter(torch.randn(1, out_channel, 4, 4))
 
         self.noisein1 = NoiseInjection(out_channel)
-        self.adain1 = AdaIn(style_dim, out_channel)
         self.lrelu1 = nn.LeakyReLU(0.2)
+        self.adain1 = AdaIn(style_dim, out_channel)
 
         self.conv2 = EqualizedConv2d(out_channel, out_channel, 3, 1, 1)
         self.noisein2 = NoiseInjection(out_channel)
-        self.adain2 = AdaIn(style_dim, out_channel)
         self.lrelu2 = nn.LeakyReLU(0.2)
+        self.adain2 = AdaIn(style_dim, out_channel)
 
         self.to_rgb = EqualizedConv2d(out_channel, 3, 1, 1, 0)
 
@@ -106,13 +106,13 @@ class UpBlock(nn.Module):
         noise = noise if noise else torch.randn(x.size(0), 1, x.size(2), x.size(3), device=x.device)
 
         x = self.noisein1(x, noise) 
-        x = self.adain1(x, w)
         x = self.lrelu1(x)
+        x = self.adain1(x, w)
 
         x = self.conv2(x)
         x = self.noisein2(x, noise) 
-        x = self.adain2(x, w)
         x = self.lrelu2(x)
+        x = self.adain2(x, w)
 
         if 0.0 <= alpha < 1.0:
             prev_rgb = self.prev.to_rgb(self.upsample(prev_x))
@@ -136,9 +136,10 @@ class DownBlock(nn.Module):
             self.conv1 = EqualizedConv2d(in_channel, out_channel, 3, 1, 1)
             self.conv2 = EqualizedConv2d(out_channel, out_channel, 3, 1, 1)
         else:
-            self.minibatch_std = minibatch_stddev_layer()
-
-            self.conv1 = EqualizedConv2d(in_channel + 1, out_channel, 3, 1, 1)
+            self.conv1 = nn.Sequential(
+                minibatch_stddev_layer(),
+                EqualizedConv2d(in_channel + 1, out_channel, 3, 1, 1),
+            )
             self.conv2 = EqualizedConv2d(out_channel, out_channel, 4, 1, 0)
 
             self.linear = EqualizedLinear(out_channel, 1)
@@ -153,9 +154,6 @@ class DownBlock(nn.Module):
 
         if 0 <= alpha:
             x = self.from_rgb(x)
-
-        if not self.next:
-            x = self.minibatch_std(x)
 
         x = self.conv1(x)
         x = self.lrelu1(x)

@@ -14,7 +14,8 @@ def main(config_file, run_type='train', checkpoint=''):
     if run_type == 'train':
         from trainer import Trainer
         trainer = Trainer(
-            dataset_dir=config.dataset_dir, 
+            dataset_dir=config.dataset_dir,
+            log_dir = config.log_dir,
             generator_channels=config.generator_channels,
             discriminator_channels=config.discriminator_channels,
             nz=config.nz, 
@@ -44,3 +45,4 @@ def main(config_file, run_type='train', checkpoint=''):
     
 if __name__ == '__main__':
     fire.Fire(main)
+

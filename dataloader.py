@@ -9,7 +9,7 @@ class Dataloader:
         self.img_size = 4
         self.max_tick = max_tick
         self.checkpoint = 0
-        self.n_cpu = n_cpu
+        self.n_cpus = n_cpu
 
     def __iter__(self):
         return DataIter(self.dataset, self.batch_size, self.max_tick, self.checkpoint, self.n_cpu)
@@ -21,6 +21,7 @@ class Dataloader:
         self.checkpoint = 0
         self.img_size *= 2
         self.batch_size = self.batch_sizes[str(self.img_size)]
+        self.n_cpu = self.n_cpus[str(self.img_size)]
 
         self.dataset = ImageFolder(root=self.dataset_dir, transform=transforms.Compose([
             transforms.Resize(self.img_size),
@@ -59,3 +60,4 @@ class DataIter:
 
     def __len__(self):
         return (self.max_tick - self.checkpoint) // self.batch_size
+
