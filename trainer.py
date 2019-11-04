@@ -35,7 +35,7 @@ def cuda(module):
         return module
 
 class Trainer:
-    def __init__(self, dataset_dir, generator_channels, discriminator_channels, nz, style_depth, lrs, betas, eps, 
+    def __init__(self, dataset_dir, log_dir, generator_channels, discriminator_channels, nz, style_depth, lrs, betas, eps, 
                  phase_iter, batch_size, n_cpu, opt_level):
         self.nz = nz
         self.dataloader = Dataloader(dataset_dir, batch_size, phase_iter * 2, n_cpu)
