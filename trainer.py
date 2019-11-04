@@ -43,7 +43,7 @@ class Trainer:
         self.generator = cuda(DataParallel(Generator(generator_channels, nz, style_depth)))
         self.discriminator = cuda(DataParallel(Discriminator(discriminator_channels)))
 
-        self.tb = tensorboard.tf_recorder('StyleGAN')
+        self.tb = tensorboard.tf_recorder('StyleGAN', log_dir)
 
         self.phase_iter = phase_iter
         self.lrs = lrs
