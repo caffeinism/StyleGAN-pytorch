@@ -79,4 +79,4 @@ There seems to be a clear speed difference depending on the precision, but it se
 
 ## Pretrained checkpoint
 
-[256x256](https://drive.google.com/file/d/1YDNeDD5G-BI5Zx5RGnlggBMFinp2z8OH/view?usp=sharing)
+~[256x256](https://drive.google.com/file/d/1YDNeDD5G-BI5Zx5RGnlggBMFinp2z8OH/view?usp=sharing)~ See [#1](https://github.com/caffeinism/StyleGAN-pytorch/issues/1)
