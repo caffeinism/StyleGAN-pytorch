@@ -67,7 +67,7 @@ class Trainer:
         loss = F.softplus(-d_fake).mean()
 
         self.optimizer_g.zero_grad()
-        with amp.scale_loss(loss, self.optimizer_g) as scaled_loss:
+        with amp.scale_loss(loss, self.optimizer_g, loss_id=0) as scaled_loss:
             scaled_loss.backward()
         self.optimizer_g.step()
 
@@ -82,7 +82,7 @@ class Trainer:
 
         d_real = self.discriminator(real, alpha=alpha)
         loss_real = F.softplus(-d_real).mean()
-        with amp.scale_loss(loss_real, self.optimizer_d) as scaled_loss_real:
+        with amp.scale_loss(loss_real, self.optimizer_d, loss_id=1) as scaled_loss_real:
             scaled_loss_real.backward(retain_graph=True)
 
         grad_real = grad(
@@ -92,7 +92,7 @@ class Trainer:
             grad_real.view(grad_real.size(0), -1).norm(2, dim=1) ** 2
         ).mean()
         grad_penalty = 10 / 2 * grad_penalty
-        with amp.scale_loss(grad_penalty, self.optimizer_d) as scaled_grad_penalty:
+        with amp.scale_loss(grad_penalty, self.optimizer_d, loss_id=1) as scaled_grad_penalty:
             scaled_grad_penalty.backward()
         
         if random.random() < 0.9:
@@ -178,7 +178,8 @@ class Trainer:
         [self.generator, self.discriminator], [self.optimizer_g, self.optimizer_d] = amp.initialize(
             [self.generator, self.discriminator], 
             [self.optimizer_g, self.optimizer_d],
-            opt_level=self.opt_level
+            opt_level=self.opt_level,
+            num_losses=2,
         )    
 
     def save_checkpoint(self, tick='last'):
