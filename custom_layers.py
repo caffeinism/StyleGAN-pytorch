@@ -64,11 +64,11 @@ class AdaIn(nn.Module):
         self.linear = EqualizedLinear(style_dim, channel * 2)
 
     def forward(self, x, style):
-        style = self.linear(style).view(2, -1, self.channel, 1, 1)
+        mu, sig = self.linear(style).chunk(2, dim=1)
 
         x = self.instance_norm(x)
 
-        x = (x * (style[0] + 1)) + style[1] # affine transform
+        x = x * (mu.view(mu.size(0), -1, 1, 1) + 1) + sig.view(sig.size(0), -1, 1, 1) # affine transform
 
         return x
 
