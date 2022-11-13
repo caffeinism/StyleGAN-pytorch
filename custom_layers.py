@@ -68,7 +68,7 @@ class AdaIn(nn.Module):
 
         x = self.instance_norm(x)
 
-        x = x * (mu.view(mu.size(0), -1, 1, 1) + 1) + sig.view(sig.size(0), -1, 1, 1) # affine transform
+        x = x * (sig.view(-1, self.channel, 1, 1) + 1) + mu.view(-1, self.channel, 1, 1) # affine transform
 
         return x
 
